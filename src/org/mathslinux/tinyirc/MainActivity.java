@@ -11,6 +11,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.widget.AbsListView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -38,36 +39,36 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        this.setContentView(R.layout.activity_main);
 
         // Setup GUI
-        initGUI();
+        this.initGUI();
 
         // Initialize IRC
-        initIRC();
+        this.initIRC();
     }
 
     private void initGUI() {
-        Log.v(TAG, "Initialize GUI");
+        Log.v(MainActivity.TAG, "Initialize GUI");
 
-        this.listView = (ListView)findViewById(R.id.ListView);
-        this.listView.setTranscriptMode(ListView.TRANSCRIPT_MODE_ALWAYS_SCROLL);
-        this.adapter = new ArrayAdapter<String>(this, R.layout.message);
+        listView = (ListView)this.findViewById(R.id.ListView);
+        listView.setTranscriptMode(AbsListView.TRANSCRIPT_MODE_ALWAYS_SCROLL);
+        adapter = new ArrayAdapter<String>(this, R.layout.message);
         listView.setAdapter(adapter);
 
-        sendText = (EditText)findViewById(R.id.SendText);
-        sendButton = (Button)findViewById(R.id.SendButton);
+        sendText = (EditText)this.findViewById(R.id.SendText);
+        sendButton = (Button)this.findViewById(R.id.SendButton);
         sendButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.e(TAG, "[sendButton clicked]");
+                Log.e(MainActivity.TAG, "[sendButton clicked]");
                 String message = sendText.getText().toString();
                 if (message.length() > 0 ) {
                     sendBuffer.setLength(0);
                     sendText.setText(sendBuffer);
                     irc.sendMessage(message);
                 } else {
-                    Toast.makeText(getApplicationContext(),
+                    Toast.makeText(MainActivity.this.getApplicationContext(),
                             "Please input a message", Toast.LENGTH_SHORT).show();
                     return;
                 }
@@ -79,9 +80,9 @@ public class MainActivity extends Activity {
     }
 
     private void initIRC() {
-        Log.v(TAG, "Initialize IRC");
+        Log.v(MainActivity.TAG, "Initialize IRC");
 
-        this.sendBuffer = new StringBuffer("");
+        sendBuffer = new StringBuffer("");
 
         // Define our listener for IRC
         IRCEventListener listener = new IRCEventListener() {
@@ -114,7 +115,7 @@ public class MainActivity extends Activity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.main, menu);
+        this.getMenuInflater().inflate(R.menu.main, menu);
         return true;
     }
 
