@@ -26,7 +26,7 @@ public class IRC extends Thread {
 
     public IRC (String host, int port, String nick, String password)
             throws UnknownHostException, IOException {
-        listenerList = new ArrayList<IRCEventListener>();
+        this.listenerList = new ArrayList<IRCEventListener>();
         this.host = host;
         this.port = port;
         this.nick = nick;
@@ -51,68 +51,86 @@ public class IRC extends Thread {
         this.send("PRIVMSG " + this.channel + " :" + message + "\n\r\n");
     }
 
-    private void login() {
-        Socket socket;
+    private boolean login() {
         try {
-            socket = new Socket(host, port);
-            writer = new BufferedWriter(
+            Log.v(this.TAG, "Prepare to login to: " + this.host + ":" + this.port);
+
+            Socket socket;
+            String line;
+            socket = new Socket(this.host, this.port);
+            this.writer = new BufferedWriter(
                     new OutputStreamWriter(socket.getOutputStream()));
-            reader = new BufferedReader(
+            this.reader = new BufferedReader(
                     new InputStreamReader(socket.getInputStream()));
 
             // Login to the irc server.
-            this.writer.write("PASS " + password + "\r\n");
-            this.writer.write("NICK " + nick + "\r\n");
-            this.writer.write("USER " + nick + " 8 * : Android IRC Hacks\r\n");
+            this.writer.write("PASS " + this.password + "\r\n");
+            this.writer.write("NICK " + this.nick + "\r\n");
+            this.writer.write("USER " + this.nick + " 8 * : Android IRC Hacks\r\n");
             this.writer.flush();
-        } catch (UnknownHostException e1) {
-            // TODO Auto-generated catch block
-            e1.printStackTrace();
-        } catch (IOException e1) {
-            // TODO Auto-generated catch block
-            e1.printStackTrace();
-        }
-    }
-    @Override
-    public void run() {
-        Log.v(TAG, "Enter IRC thread");
 
-        this.login();
-
-        Log.v(TAG, "Enter IRC main-loop");
-        String line = null;
-        try {
             // Read lines from the server until it tells us we have connected.
-            while ((line = reader.readLine( )) != null) {
-                Log.e(TAG, "Error response11: " + line);
+            while ((line = this.reader.readLine( )) != null) {
                 if (line.indexOf("004") >= 0) {
                     // We are now logged in.
-                    Log.w(TAG, "We have been logged in");
+                    Log.v(this.TAG, "We are now logged in");
                     break;
                 } else if (line.indexOf("433") >= 0) {
                     // If the nickname has been used, choose a new one
-                    Log.w(TAG, "Nickname is already in use");
-                    nick = nick + "1";
-                    this.send("NICK " + nick + "\r\n");
+                    Log.w(this.TAG, "Nickname is already in use");
+                    this.nick = this.nick + "1";
+                    this.send("NICK " + this.nick + "\r\n");
                 } else {
-                    Log.e(TAG, "Error response: " + line);
+                    Log.v(this.TAG, "Response during logining: " + line);
                 }
             }
+        } catch (UnknownHostException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+            Log.e(this.TAG, "Hostname error");
+            for (Object listener : this.listenerList) {
+                ((IRCEventListener)listener).onLoginFailed();
+            }
+            return false;
+        } catch (IOException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+            Log.e(this.TAG, "Login error: IOException");
+            for (Object listener : this.listenerList) {
+                ((IRCEventListener)listener).onLoginFailed();
+            }
+            return false;
+        }
+        for (Object listener : this.listenerList) {
+            ((IRCEventListener)listener).onLoginSuccess();
+        }
+        return true;
+    }
+    @Override
+    public void run() {
+        Log.v(this.TAG, "Enter IRC thread");
 
+        if (this.login() == false) {
+            return;
+        }
+
+        Log.v(this.TAG, "Enter IRC main-loop");
+        String line = null;
+        try {
             // Join the channel
-            Log.w(TAG, "Join channel: " + this.channel);
+            Log.w(this.TAG, "Join channel: " + this.channel);
             this.send("JOIN " + this.channel + "\r\n");
 
-            while ((line = reader.readLine( )) != null) {
-                Log.d(TAG, "Receive server message: " + line);
+            while ((line = this.reader.readLine( )) != null) {
+                Log.d(this.TAG, "Receive server message: " + line);
                 if (line.toUpperCase().startsWith("PING ")) {
                     // We must respond to PINGs to avoid being disconnected.
-                    Log.v(TAG, "Reveive PING from server, send a PONG");
+                    Log.v(this.TAG, "Reveive PING from server, send a PONG");
                     this.send("PONG " + line.substring(5) + "\r\n");
                 }
                 else {
                     // Print the raw line received by the bot.
-                    for (Object listener : listenerList) {
+                    for (Object listener : this.listenerList) {
                         ((IRCEventListener)listener).onPrivmsg(line);
                     }
                 }
@@ -125,10 +143,10 @@ public class IRC extends Thread {
     }
 
     public void addIRCEventListener(IRCEventListener listener) {
-        listenerList.add(listener);
+        this.listenerList.add(listener);
     }
 
     public void removeIRCEventListener(IRCEventListener listener) {
-        listenerList.remove(listener);
+        this.listenerList.remove(listener);
     }
 }
