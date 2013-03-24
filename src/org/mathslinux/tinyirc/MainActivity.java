@@ -30,9 +30,11 @@ public class MainActivity extends Activity {
     private final Handler IRCHandler =  new Handler() {
         @Override
         public void handleMessage(Message msg) {
+            // TODO: login sucess/fail handle
+
             String message = (String)msg.obj;
-            adapter.add(message);
-            adapter.notifyDataSetChanged();
+            MainActivity.this.adapter.add(message);
+            MainActivity.this.adapter.notifyDataSetChanged();
         }
     };
 
@@ -51,22 +53,22 @@ public class MainActivity extends Activity {
     private void initGUI() {
         Log.v(MainActivity.TAG, "Initialize GUI");
 
-        listView = (ListView)this.findViewById(R.id.ListView);
-        listView.setTranscriptMode(AbsListView.TRANSCRIPT_MODE_ALWAYS_SCROLL);
-        adapter = new ArrayAdapter<String>(this, R.layout.message);
-        listView.setAdapter(adapter);
+        this.listView = (ListView)this.findViewById(R.id.ListView);
+        this.listView.setTranscriptMode(AbsListView.TRANSCRIPT_MODE_ALWAYS_SCROLL);
+        this.adapter = new ArrayAdapter<String>(this, R.layout.message);
+        this.listView.setAdapter(this.adapter);
 
-        sendText = (EditText)this.findViewById(R.id.SendText);
-        sendButton = (Button)this.findViewById(R.id.SendButton);
-        sendButton.setOnClickListener(new OnClickListener() {
+        this.sendText = (EditText)this.findViewById(R.id.SendText);
+        this.sendButton = (Button)this.findViewById(R.id.SendButton);
+        this.sendButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
                 Log.e(MainActivity.TAG, "[sendButton clicked]");
-                String message = sendText.getText().toString();
+                String message = MainActivity.this.sendText.getText().toString();
                 if (message.length() > 0 ) {
-                    sendBuffer.setLength(0);
-                    sendText.setText(sendBuffer);
-                    irc.sendMessage(message);
+                    MainActivity.this.sendBuffer.setLength(0);
+                    MainActivity.this.sendText.setText(MainActivity.this.sendBuffer);
+                    MainActivity.this.irc.sendMessage(message);
                 } else {
                     Toast.makeText(MainActivity.this.getApplicationContext(),
                             "Please input a message", Toast.LENGTH_SHORT).show();
@@ -74,7 +76,7 @@ public class MainActivity extends Activity {
                 }
 
                 // Add input message to chat window
-                adapter.add("Me: " + message);
+                MainActivity.this.adapter.add("Me: " + message);
             }
         });
     }
@@ -82,7 +84,7 @@ public class MainActivity extends Activity {
     private void initIRC() {
         Log.v(MainActivity.TAG, "Initialize IRC");
 
-        sendBuffer = new StringBuffer("");
+        this.sendBuffer = new StringBuffer("");
 
         // Define our listener for IRC
         IRCEventListener listener = new IRCEventListener() {
@@ -90,19 +92,25 @@ public class MainActivity extends Activity {
             public void onPrivmsg(String message) {
                 Message msg = Message.obtain();
                 msg.obj = message;
-                IRCHandler.sendMessage(msg);
+                MainActivity.this.IRCHandler.sendMessage(msg);
+            }
+            @Override
+            public void onLoginSuccess() {
+            }
+            @Override
+            public void onLoginFailed() {
             }
         };
         try {
             // Register our listener to IRC
-            irc = new IRC("192.168.0.200", 6667, "dunrong", "cloudtimes");
-            irc.addIRCEventListener(listener);
+            this.irc = new IRC("192.168.1.101", 6667, "dunrong", "cloudtimes");
+            this.irc.addIRCEventListener(listener);
 
             // FIXME, hardcode channel
-            irc.join("#ct");
+            this.irc.join("#ct");
 
             // Run IRC main-loop
-            irc.start();
+            this.irc.start();
         } catch (UnknownHostException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
